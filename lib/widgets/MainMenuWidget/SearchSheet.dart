@@ -59,7 +59,7 @@ class SearchSheet extends GetView<MainPageController> {
                         controller.pickUpAdrress!.value =
                             await HelperMethods.findCordinateAddress(
                                 ps, context, '');
-                        controller.showDetailSheet();
+                        controller.showDetailSheet('');
                       },
                     )
                   : Column(
@@ -88,7 +88,7 @@ class SearchSheet extends GetView<MainPageController> {
                             Get.to(() => SearchPage());
                             if (controller.seaechPageResponse.value ==
                                 'getDirection') {
-                              controller.showDetailSheet();
+                              controller.showDetailSheet('');
                             }
                           },
                           child: Container(
@@ -121,7 +121,7 @@ class SearchSheet extends GetView<MainPageController> {
                         Material(
                           child: InkWell(
                             onTap: () {
-                              controller.showDetailSheet();
+                              controller.showDetailSheet('Skip');
                             },
                             child: Container(
                               height: 50,
