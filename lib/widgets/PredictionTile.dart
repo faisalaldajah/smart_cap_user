@@ -4,11 +4,9 @@ import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:provider/provider.dart';
 import 'package:smart_cap_user/brand_colors.dart';
 import 'package:smart_cap_user/datamodels/address.dart';
 import 'package:smart_cap_user/datamodels/prediction.dart';
-import 'package:smart_cap_user/dataprovider/appdata.dart';
 import 'package:smart_cap_user/globalvariable.dart';
 import 'package:smart_cap_user/screens/mainPage/main_page_controller.dart';
 
@@ -41,8 +39,7 @@ class PredictionTile extends GetView<MainPageController> {
       controller.destinationAddress.value = thisPlace;
       controller.seaechPageResponse.value = 'getDirection';
       log('message');
-      controller.showDetailSheet();
-      //log(controller.seaechPageResponse.value.toString());
+      controller.showDetailSheet('');
       Get.back();
     }
   }

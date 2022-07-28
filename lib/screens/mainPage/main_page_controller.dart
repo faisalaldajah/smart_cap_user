@@ -279,7 +279,10 @@ class MainPageController extends GetxController {
     await FirebaseAuth.instance.signOut();
   }
 
-  void showDetailSheet() async {
+  void showDetailSheet(String status) async {
+    if (status == 'Skip') {
+      destinationAddress.value = Address();
+    }
     await getDirection();
     searchSheetHeight.value = 0;
     mapBottomPadding.value = (Platform.isAndroid) ? 240 : 230;
