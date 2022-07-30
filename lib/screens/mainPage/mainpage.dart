@@ -1,7 +1,7 @@
 // ignore_for_file: prefer_const_constructors, use_key_in_widget_constructors, prefer_final_fields, non_constant_identifier_names, deprecated_member_use, sized_box_for_whitespace, missing_return, prefer_const_literals_to_create_immutables
 
+import 'dart:developer';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -54,7 +54,7 @@ class MainPage extends GetView<MainPageController> {
               circles: controller.circles,
               onMapCreated: (GoogleMapController? googleMapController) {
                 controller.googleMapController.complete(googleMapController);
-                mapController = googleMapController!;
+                controller.mapController!.value = googleMapController!;
                 controller.mapBottomPadding.value =
                     (Platform.isAndroid) ? 280 : 270;
               },

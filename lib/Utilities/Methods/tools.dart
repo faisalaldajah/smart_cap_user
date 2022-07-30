@@ -1,69 +1,55 @@
 import 'dart:io';
 import 'dart:math';
-
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_share/flutter_share.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart' as intl;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:smart_cap_user/Services/translation_service.dart';
 import 'package:smart_cap_user/Utilities/Constants/AppColors.dart';
-import 'package:smart_cap_user/Utilities/Constants/UI.dart';
-import 'package:intl/intl.dart' as intl;
+import 'package:smart_cap_user/Utilities/Methods/AppStyles.dart';
+import 'package:smart_cap_user/Utilities/Methods/UI.dart';
+import 'package:smart_cap_user/widgets/custom_bottom_sheet.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class CommonTools {
-  // showSuccessSnackBar(
-  //   BuildContext context,
-  //   String message,
-  // ) {
-  //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-  //     content: Text(message.tr,
-  //         textScaleFactor: 1.0,
-  //         style: Get.textTheme.headline6!.merge(
-  //             TextStyle(color: AppColors.white, fontWeight: FontWeight.w500))),
-  //     backgroundColor: AppColors.success,
-  //   ));
-  // }
-
-  // showFailedSnackBar(BuildContext context, String message) {
-  //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-  //     content: Text(message.tr,
-  //         textScaleFactor: 1.0,
-  //         style: Get.textTheme.headline6!.merge(
-  //             TextStyle(color: AppColors.white, fontWeight: FontWeight.w500))),
-  //     backgroundColor: AppColors.failed,
-  //   ));
-  // }
-
   TextEditingController otpController = TextEditingController();
 
-  String? passwordValidate(String? value, TextEditingController controller) {
+  String? passwordValidate(TextEditingController controller) {
     String pattern =
         r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$';
     RegExp regExp = RegExp(pattern);
     if (controller.text.isEmpty) {
-      return value = 'this field is required'.tr;
+      return 'this field is required'.tr;
     } else if (controller.text.length < 8) {
-      return value = 'invalid password'.tr;
+      return 'invalid password'.tr;
     } else if (regExp.hasMatch(controller.text) == false) {
-      return value = 'please enter valid password'.tr;
-    } else {
-      value = null;
+      return 'please enter valid password'.tr;
     }
-    return value;
+    return null;
   }
 
-  String? emailValidate(String? value, TextEditingController controller) {
+  Future<String>? fcmTokenUser() async {
+    String? fcmToken = await FirebaseMessaging.instance.getToken();
+    return fcmToken!;
+  }
+
+  String? emailValidate(TextEditingController controller) {
     if (controller.text.isEmpty) {
-      return value = 'this field is required'.tr;
+      return 'this field is required'.tr;
     } else if (!controller.text.contains('@') ||
         !controller.text.contains('.com')) {
-      return value = 'please enter vaild email'.tr;
-    } else {
-      value = null;
+      return 'please enter vaild email'.tr;
     }
-    return value;
+    return null;
   }
 
   String? nameValidate(TextEditingController controller) {
@@ -119,7 +105,7 @@ class CommonTools {
     return null;
   }
 
-  String? DateValidate(String? value, TextEditingController controller) {
+  String? dateValidate(String? value, TextEditingController controller) {
     if (controller.text.isEmpty) {
       value = 'this field is required'.tr;
     } else {
@@ -209,6 +195,18 @@ class CommonTools {
     return value = null;
   }
 
+  String? serviceCostValidate(String? value, TextEditingController controller) {
+    if (controller.text.isEmpty) {
+      return value = 'this field is required'.tr;
+    } else if (controller.text.length < 2) {
+      return value = 'enterValidData'.tr;
+    } else if (value!.contains(RegExp('[a-zA-Zا-ي?=*!@#\$%^&*(),?:{}|<>]'))) {
+      return value = 'should be contains numbers only'.tr;
+    }
+
+    return value = null;
+  }
+
   String? neighborhoodValidate(
       String? value, TextEditingController controller) {
     if (controller.text.isEmpty) {
@@ -218,7 +216,7 @@ class CommonTools {
     return value = null;
   }
 
-  String? BuildingNumberValidate(
+  String? buildingNumberValidate(
       String? value, TextEditingController controller) {
     if (controller.value.text.isEmpty || controller.value.text == '') {
       value = 'this field is required'.tr;
@@ -257,12 +255,14 @@ class CommonTools {
         controller.text.isEmpty ||
         controller.text.trim() == '') {
       return 'this field is required'.tr;
-    } else if (controller.text.length < textLength && textLength == 24) {
+    } else if (controller.text.length < textLength &&
+        textLength == 24 &&
+        controller.text.contains('SA') == true) {
       return 'enterValidIban'.tr;
     } else if (controller.text.length < textLength && textLength == 8) {
       return 'enterValidAccountNumber'.tr;
     } else if (controller.text.contains('SA') == false) {
-      return 'start with SA'.tr;
+      return 'enterValidIbanSA'.tr;
     }
 
     return null;
@@ -292,29 +292,57 @@ class CommonTools {
     ));
   }
 
+  void showWarningSnackBar(String title) {
+    Get.showSnackbar(UI.warningSnackBar(
+      title: title,
+      message: '',
+    ));
+  }
+
+  String modifiedDate(String date) {
+    String dt;
+    if (date.contains(' ')) {
+      dt = date.substring(0, date.indexOf(' '));
+      return dt;
+    } else {
+      return date;
+    }
+  }
+
+  String hourDate(String date) {
+    String dt;
+    if (date.contains('.')) {
+      int time = date.indexOf(' ');
+      dt = date.substring(time, date.indexOf('.'));
+      return dt;
+    } else {
+      return date;
+    }
+  }
+
   void showLoading() {
     Get.dialog(
-      Center(
-        child: Container(
-          width: Get.width * 0.25,
-          height: Get.width * 0.25,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15.0),
-            color: AppColors.black.withOpacity(0.5),
+        Center(
+          child: Container(
+            width: Get.width * 0.18,
+            height: Get.width * 0.18,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppStyles.borderRadius),
+              color: AppColors.black.withOpacity(0.5),
+            ),
+            child: Center(
+                child: Theme(
+                    data: ThemeData(
+                        cupertinoOverrideTheme: const CupertinoThemeData(
+                            brightness: Brightness.dark)),
+                    child: const CupertinoActivityIndicator(
+                      radius: 15.0,
+                    ))),
           ),
-          child: Center(
-              child: Theme(
-                  data: ThemeData(
-                      cupertinoOverrideTheme: const CupertinoThemeData(
-                          brightness: Brightness.dark)),
-                  child: const CupertinoActivityIndicator(
-                    radius: 15.0,
-                  ))),
         ),
-      ),
-      barrierColor: Colors.transparent,
-      barrierDismissible: false,
-    );
+        barrierColor: Colors.transparent,
+        barrierDismissible: false,
+        routeSettings: const RouteSettings(name: 'loading'));
   }
 
   void showLoadingCustom(double backgroundOpacity, Widget widget) {
@@ -326,15 +354,12 @@ class CommonTools {
         barrierColor: AppColors.white.withOpacity(backgroundOpacity));
   }
 
-  Future<bool> checkPermission() async {
+  Future<bool> checkPermissionLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    print('9');
-
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      print('Location services are disabled.');
       // Future.error('Location services are disabled.')
       return false;
     }
@@ -353,29 +378,8 @@ class CommonTools {
       return false;
     }
 
-    print('10');
-
     return true;
   }
-
-  // Future<LocationData> determinePosition() async {
-  //   print('6');
-
-  //   bool checkPer = await checkPermission();
-  //   Position? position;
-
-  //   if (checkPer) {
-  //     print('12');
-
-  //     position = await Geolocator.getCurrentPosition(
-  //         timeLimit: const Duration(seconds: 10),
-  //         desiredAccuracy: LocationAccuracy.low);
-  //   }
-
-  //   print('77');
-
-  //   return LocationData(localPosition: position);
-  // }
 
   void unFocusKeyboard(BuildContext context) {
     FocusScopeNode currentFocus = FocusScope.of(context);
@@ -394,7 +398,7 @@ class CommonTools {
     return randomID;
   }
 
-  void ShowWarningDialogMutliButtons(
+  void showWarningDialogMutliButtons(
       BuildContext context,
       String title,
       String message,
@@ -458,12 +462,10 @@ class CommonTools {
             style: Get.textTheme.headline3!.copyWith(color: AppColors.black),
           ),
         ),
-        content: Container(
-          child: Text(
-            message,
-            style: Get.textTheme.bodyText2!.copyWith(color: AppColors.black),
-            maxLines: 3,
-          ),
+        content: Text(
+          message,
+          style: Get.textTheme.bodyText2!.copyWith(color: AppColors.black),
+          maxLines: 3,
         ),
         actions: <CupertinoDialogAction>[
           CupertinoDialogAction(
@@ -483,6 +485,18 @@ class CommonTools {
     final buffer = data.buffer;
     return File(path).writeAsBytes(
         buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+  }
+
+  void showCustomBottomSheet(BuildContext context, String title, Widget child) {
+    showModalBottomSheet(
+        elevation: 5,
+        isScrollControlled: true,
+        backgroundColor: AppColors.white.withOpacity(0),
+        context: context,
+        isDismissible: true,
+        builder: (BuildContext newContext) {
+          return CustomBottomSheet(title: title, child: child);
+        });
   }
 
   String getVerboseDateTimeRep(String date) {
@@ -676,7 +690,10 @@ class CommonTools {
   }
 
   void openURL(String url) async {
-    if (!await launch(url)) throw 'Could not launch $url';
+    if (!await launchUrl(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    )) throw 'Could not launch $url';
   }
 
   int getRandomSmallNumberFromList() {
@@ -684,9 +701,156 @@ class CommonTools {
     return getRandomElement(list);
   }
 
+  int getRandomSmallNumberCustomList(var list) {
+    return getRandomElement(list);
+  }
+
   T getRandomElement<T>(List<T> list) {
     final random = Random();
     var i = random.nextInt(list.length);
     return list[i];
+  }
+
+  // Future<File?> cropImage(File file) async {
+  //   File? newFile;
+
+  //   CroppedFile? cropped = await ImageCropper().cropImage(
+  //     sourcePath: file.path,
+  //     compressQuality: 10,
+  //     cropStyle: CropStyle.rectangle,
+  //     compressFormat: ImageCompressFormat.jpg,
+  //     aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+  //     uiSettings: [
+  //       AndroidUiSettings(
+  //         toolbarColor: Get.theme.primaryColor,
+  //         toolbarTitle: 'Crop Image',
+  //         statusBarColor: AppColors.white,
+  //         backgroundColor: AppColors.white,
+  //         activeControlsWidgetColor: Get.theme.focusColor,
+  //       ),
+  //       IOSUiSettings(
+  //         title: 'Cropper',
+  //       ),
+  //     ],
+  //   );
+  //   if (cropped != null) {
+  //     newFile = File(cropped.path);
+  //   }
+
+  //   return newFile;
+  // }
+
+  Future permissionHandlerImage() async {
+    if (await Permission.photos.isDenied) {
+      Permission.photos.request().isGranted;
+    }
+    if (await Permission.photos.isLimited) {
+      Permission.photos.request().isGranted;
+    }
+    if (await Permission.photos.isPermanentlyDenied) {
+      Permission.photos.request().isGranted;
+    }
+    if (await Permission.photos.isRestricted) {
+      Permission.photos.request().isGranted;
+    }
+  }
+
+  Future permissionHandlerFile() async {
+    if (await Permission.storage.isDenied) {
+      Permission.photos.request().isGranted;
+    }
+    if (await Permission.storage.isLimited) {
+      Permission.photos.request().isGranted;
+    }
+    if (await Permission.storage.isPermanentlyDenied) {
+      Permission.photos.request().isGranted;
+    }
+    if (await Permission.storage.isRestricted) {
+      Permission.photos.request().isGranted;
+    }
+  }
+
+  Future<void> share(
+      {required String title,
+      String? text,
+      String? linkUrl,
+      String? chooserTitle}) async {
+    await FlutterShare.share(
+      title: title,
+      text: text,
+      linkUrl: linkUrl,
+      chooserTitle: chooserTitle,
+    );
+  }
+
+  Future<Placemark> getAddressPlacemark(LatLng latLng) async {
+    Placemark placeMark = Placemark(country: 'none');
+    List<Placemark> newPlace = await placemarkFromCoordinates(
+        latLng.latitude, latLng.longitude,
+        localeIdentifier: 'en');
+    placeMark = newPlace[0];
+
+    return placeMark;
+  }
+
+  String getHourFromDateString(String date) {
+    String hourDate = '';
+    List<String> splitterHours = date.split(':');
+    hourDate = splitterHours[0].split(' ')[1];
+    hourDate += ':';
+    hourDate += splitterHours[1];
+    return hourDate;
+  }
+
+  RxString checkIfProfilePictureForCurrentUser(
+      String id, String appUserId, String imageUrl, String appUserImageUrl) {
+    if (id == appUserId) return appUserImageUrl.obs;
+
+    return imageUrl.obs;
+  }
+
+  Future<Uint8List> getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(),
+        targetWidth: width);
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!
+        .buffer
+        .asUint8List();
+  }
+
+  Future<BitmapDescriptor> getBitmapDescriptorFromAssetBytes(
+      String path, int width) async {
+    final Uint8List imageData = await getBytesFromAsset(path, width);
+    return BitmapDescriptor.fromBytes(imageData);
+  }
+
+  String paymentMethodType(int type) {
+    switch (type) {
+      case 0:
+        return 'undefined'.tr;
+      case 1:
+        return 'Cash'.tr;
+      case 2:
+        return 'cridet card'.tr;
+      case 3:
+        return 'wallet'.tr;
+      default:
+        return 'wallet'.tr;
+    }
+  }
+
+  Future<void> openMap(double latitude, double longitude) async {
+    try {
+      String googleUrl =
+          'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+      if (await canLaunchUrl(Uri.parse(googleUrl))) {
+        await launchUrl(Uri.parse(googleUrl));
+      } else {
+        throw 'Could not open the map.';
+      }
+    } on Exception {
+      throw Exception('Error on server');
+    }
   }
 }

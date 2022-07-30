@@ -90,9 +90,9 @@ class LoginPage extends GetView<LogInController> {
                           textFieldController: controller.emailController.value,
                           hint: 'email address',
                           textInputType: TextInputType.emailAddress,
-                          validator: (value) =>
-                              controller.authManager.commonTools.emailValidate(
-                                  value, controller.emailController.value),
+                          validator: (value) => controller
+                              .authManager.commonTools
+                              .emailValidate(controller.emailController.value),
                         ),
                         const SizedBox(height: 15),
                         CustomizedTextField(
@@ -109,7 +109,7 @@ class LoginPage extends GetView<LogInController> {
                           validator: (value) => controller
                               .authManager.commonTools
                               .passwordValidate(
-                                  value, controller.passwordController.value),
+                                  controller.passwordController.value),
                           suffix: IconButton(
                             onPressed: () {
                               controller.showPassword.value =

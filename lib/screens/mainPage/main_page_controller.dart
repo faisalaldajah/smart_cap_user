@@ -6,8 +6,6 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
@@ -56,7 +54,7 @@ class MainPageController extends GetxController {
   RxBool drawerCanOpen = true.obs;
 
   StreamSubscription<DatabaseEvent>? rideSubscription;
-
+  Rx<GoogleMapController>? mapController;
   List<NearbyDriver> availableDrivers = <NearbyDriver>[].obs;
 
   RxBool nearbyDriversKeysLoaded = false.obs;
@@ -68,40 +66,23 @@ class MainPageController extends GetxController {
   RxString? pickUpAdrress;
   @override
   Future<void> onInit() async {
-    driverCarStyle = 'economyAvailable';
-    setupPositionLocator(Get.context);
+    driverCarStyle = 'driversDetails';
+    mainPickupAddress.value.latitude = currentPosition!.latitude;
+    mainPickupAddress.value.longitude = currentPosition!.longitude;
+    mainPickupAddress.value.placeName = homeAddress.value;
     createMarker();
+    startGeofireListener();
     super.onInit();
   }
 
-  Future<void> setupPositionLocator(context) async {
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.bestForNavigation,
-        forceAndroidLocationManager: true);
-    currentPosition = position;
-    pos = LatLng(position.latitude, position.longitude);
-    CameraPosition cp = CameraPosition(target: pos!, zoom: 14);
-    mapController.animateCamera(CameraUpdate.newCameraPosition(cp));
-    List<Placemark> placemarks =
-        await placemarkFromCoordinates(position.latitude, position.longitude);
-    homeAddress.value =
-        placemarks[0].street! + '-' + placemarks[0].subLocality!;
-    //log(homeAddress.value);
-    Address pickupAddress = Address();
-    pickupAddress.longitude = position.longitude;
-    pickupAddress.latitude = position.latitude;
-    pickupAddress.placeName = homeAddress.value;
-    mainPickupAddress.value = pickupAddress;
-    homeAddresscheck.value = true;
-    pickupController.text = mainPickupAddress.value.placeName!;
-    log(mainPickupAddress.value.placeName!);
-    Provider.of<AppData>(Get.context!, listen: false)
-        .updatePickupAddress(mainPickupAddress.value);
-    startGeofireListener();
+  @override
+  void onReady() {
+    pickupController.text = homeAddress.value;
+    super.onReady();
   }
 
   void startGeofireListener() {
-    Geofire.initialize('economyAvailable');
+    Geofire.initialize('driversDetails');
     Geofire.queryAtLocation(
             currentPosition!.latitude, currentPosition!.longitude, 20)!
         .listen((map) {
@@ -163,14 +144,16 @@ class MainPageController extends GetxController {
   }
 
   Future<void> getDirection() async {
-    var pickup = mainPickupAddress.value;
+    Address pickup = mainPickupAddress.value;
 
-    var destination = (destinationAddress.value.latitude != null)
+    Address destination = (destinationAddress.value.latitude != null)
         ? destinationAddress.value
         : mainPickupAddress.value;
-
-    var pickLatLng = LatLng(pickup.latitude!, pickup.longitude!);
-    var destinationLatLng =
+    print(mainPickupAddress.value.latitude);
+    print(mainPickupAddress.value.longitude);
+    LatLng pickLatLng = LatLng(
+        mainPickupAddress.value.latitude!, mainPickupAddress.value.longitude!);
+    LatLng destinationLatLng =
         LatLng(destination.latitude!, destination.longitude!);
 
     showDialog(
@@ -233,7 +216,8 @@ class MainPageController extends GetxController {
           LatLngBounds(southwest: pickLatLng, northeast: destinationLatLng);
     }
 
-    mapController.animateCamera(CameraUpdate.newLatLngBounds(bounds, 70));
+    // mapController!.value
+    //     .animateCamera(CameraUpdate.newLatLngBounds(bounds, 70));
 
     Marker pickupMarker = Marker(
       markerId: const MarkerId('pickup'),

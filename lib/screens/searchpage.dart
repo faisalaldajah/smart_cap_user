@@ -46,8 +46,7 @@ class SearchPage extends GetView<MainPageController> {
           );
           controller.destinationPredictionList.add(prediction);
         }
-        log(controller.destinationPredictionList[0].mainText.toString());
-        //controller.destinationPredictionList.value = items;
+        controller.destinationPredictionList.value = items;
       }
     }
   }

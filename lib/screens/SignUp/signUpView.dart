@@ -66,9 +66,9 @@ class SignUpView extends GetView<SignUpController> {
                           hint: 'email address',
                           textInputType: TextInputType.emailAddress,
                           obscureText: false,
-                          validator: (value) =>
-                              controller.authManager.commonTools.emailValidate(
-                                  value, controller.emailController.value),
+                          validator: (value) => controller
+                              .authManager.commonTools
+                              .emailValidate(controller.emailController.value),
                         ),
                         const SizedBox(height: 10),
                         // Phone

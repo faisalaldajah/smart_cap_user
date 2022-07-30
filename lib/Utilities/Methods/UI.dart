@@ -1,25 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_cap_user/Utilities/Constants/AppColors.dart';
+import 'package:smart_cap_user/Utilities/Methods/AppStyles.dart';
 
 class UI {
   static GetSnackBar successSnackBar(
       {String title = 'success', String? message, int duration = 3}) {
     return GetSnackBar(
       titleText: Text(title.tr,
-          style: Get.textTheme.headline4!.merge(const TextStyle(
+          style: Get.textTheme.headline5!.merge(const TextStyle(
               color: AppColors.white, fontWeight: FontWeight.w500))),
       messageText: Text(message!,
           style: Get.textTheme.headline6!.merge(const TextStyle(
-              color: AppColors.white, fontWeight: FontWeight.w500))),
+              color: AppColors.white,
+              fontWeight: FontWeight.w500,
+              height: 1.5))),
       snackPosition: SnackPosition.BOTTOM,
-      margin: const EdgeInsets.all(20),
+      margin: const EdgeInsets.all(24.0),
       backgroundColor: Get.theme.primaryColor,
       icon: const Icon(Icons.check_circle_outline,
-          size: 32, color: AppColors.white),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      borderRadius: 8,
+          size: 24.0, color: AppColors.white),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      borderRadius: AppStyles.borderRadius,
       duration: Duration(seconds: duration),
+      barBlur: 20.0,
+      overlayBlur: 1.0,
     );
   }
 
@@ -34,19 +39,23 @@ class UI {
       {String title = 'failed', String? message, int duration = 5}) {
     return GetSnackBar(
       titleText: Text(title.tr,
-          style: Get.textTheme.headline4!.merge(const TextStyle(
+          style: Get.textTheme.headline5!.merge(const TextStyle(
               color: AppColors.white, fontWeight: FontWeight.w500))),
       messageText: Text(message!,
           style: Get.textTheme.headline6!.merge(const TextStyle(
-              color: AppColors.white, fontWeight: FontWeight.w500))),
+              color: AppColors.white,
+              fontWeight: FontWeight.w500,
+              height: 1.5))),
       snackPosition: SnackPosition.BOTTOM,
-      margin: const EdgeInsets.all(20),
+      margin: const EdgeInsets.all(24.0),
       backgroundColor: Colors.redAccent,
       icon: const Icon(Icons.remove_circle_outline,
-          size: 32, color: AppColors.white),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      borderRadius: 8,
+          size: 24.0, color: AppColors.white),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      borderRadius: AppStyles.borderRadius,
       duration: Duration(seconds: duration),
+      barBlur: 20.0,
+      overlayBlur: 1.0,
     );
   }
 
@@ -57,6 +66,26 @@ class UI {
     } catch (e) {
       return const Color(0xFFCCCCCC).withOpacity(opacity ?? 1);
     }
+  }
+
+  static GetSnackBar warningSnackBar(
+      {String? title, String message = '', int duration = 5}) {
+    return GetSnackBar(
+      titleText: Text(title!.tr,
+          style: Get.textTheme.headline5!.merge(const TextStyle(
+              color: AppColors.white, fontWeight: FontWeight.w500))),
+      messageText: const SizedBox(),
+      snackPosition: SnackPosition.BOTTOM,
+      margin: const EdgeInsets.all(24.0),
+      backgroundColor: AppColors.yellow,
+      icon: const Icon(Icons.remove_circle_outline,
+          size: 24.0, color: AppColors.white),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
+      borderRadius: AppStyles.borderRadius,
+      duration: Duration(seconds: duration),
+      barBlur: 20.0,
+      overlayBlur: 1.0,
+    );
   }
 
   static InputDecoration getInputDecoration(

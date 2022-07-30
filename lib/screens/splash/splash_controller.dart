@@ -1,28 +1,63 @@
+import 'dart:developer';
 import 'dart:io';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'package:smart_cap_user/Services/AuthenticationService/Core/manager.dart';
 import 'package:smart_cap_user/Utilities/Constants/AppColors.dart';
+import 'package:smart_cap_user/globalvariable.dart';
 import 'package:smart_cap_user/helpers/helpermethods.dart';
 import 'package:smart_cap_user/screens/LogIn/login_binding.dart';
 import 'package:smart_cap_user/screens/LogIn/loginpage.dart';
 
+import '../../datamodels/address.dart';
+import '../../dataprovider/appdata.dart';
+
 class SplashController extends GetxController {
   AuthenticationManager authManager = Get.find();
-
+  Rx<Address> mainPickupAddress = Address().obs;
+  Rx<Address> destinationAddress = Address().obs;
   @override
   void onInit() async {
-    HelperMethods.getCurrentUserInfo();
-    try {
-      final result = await InternetAddress.lookup('google.com');
-      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {}
-    } on SocketException catch (_) {
-      authManager.commonTools.showFailedSnackBar('No internet connectivity');
+    if (await Permission.location.isDenied) {
+      print('object');
+      Geolocator.requestPermission();
+    }
+    await setupPositionLocator();
+
+    if (await Permission.location.isGranted) {
+      HelperMethods.getCurrentUserInfo();
+      try {
+        final result = await InternetAddress.lookup('google.com');
+        if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {}
+      } on SocketException catch (_) {
+        authManager.commonTools.showFailedSnackBar('No internet connectivity');
+      }
     }
     super.onInit();
+  }
+
+  Future<void> setupPositionLocator() async {
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.bestForNavigation);
+    currentPosition = position;
+
+    List<Placemark> placemarks =
+        await placemarkFromCoordinates(position.latitude, position.longitude);
+
+    homeAddress.value =
+        placemarks[0].street! + '-' + placemarks[0].subLocality!;    
+    homeAddresscheck.value = true;
+    Provider.of<AppData>(Get.context!, listen: false)
+        .updatePickupAddress(mainPickupAddress.value);
+    pos = LatLng(currentPosition!.latitude, currentPosition!.longitude);
+    googlePlex = CameraPosition(target: pos!, zoom: 14);
   }
 
   Future<void> signOut() async {

@@ -8,8 +8,8 @@ String serverKey =
     'key=AAAAfSv3M30:APA91bGsv2U2KFDn-hGhSyGn5chdUsPRkERjZoDc05H4RoM6_bqL3Sl43Eb5X2lL5RjhfxzuCV1wxRdq55Xs2mDtq_aRihj2kZNVdYRB9eS6WV0nqjBGM4pY7qG1N4fi4UvnxTWFGFMU';
 
 String mapKey = 'AIzaSyALY906rdwqFYGffSyDo-j3OOAPdGUoscA';
-
-const CameraPosition googlePlex = CameraPosition(
+Position? currentPosition;
+CameraPosition googlePlex = const CameraPosition(
   target: LatLng(31.954066, 35.931066),
   zoom: 14.4746,
 );
@@ -20,7 +20,6 @@ RxBool homeAddresscheck = false.obs;
 
 String driverCarStyle = '';
 var geoLocator = Geolocator();
-Position? currentPosition;
-late GoogleMapController mapController;
+
 RxString homeAddress = ''.obs;
 //LatLng(31.954066, 35.931066)
