@@ -52,7 +52,7 @@ class MainPage extends GetView<MainPageController> {
               polylines: controller.polylines,
               markers: controller.markers,
               circles: controller.circles,
-              onMapCreated: (GoogleMapController? googleMapController) {
+              onMapCreated: (GoogleMapController? googleMapController)  {
                 controller.googleMapController.complete(googleMapController);
                 controller.mapController!.value = googleMapController!;
                 controller.mapBottomPadding.value =

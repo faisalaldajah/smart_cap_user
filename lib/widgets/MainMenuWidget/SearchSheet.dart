@@ -56,7 +56,7 @@ class SearchSheet extends GetView<MainPageController> {
                       pinStatus: controller.pinStatus.value,
                       onPressed: () async {
                         LatLng ps = await controller.getCenter();
-                        controller.pickUpAdrress!.value =
+                        controller.pickUpAdrress.value =
                             await HelperMethods.findCordinateAddress(
                                 ps, context, '');
                         controller.showDetailSheet('');

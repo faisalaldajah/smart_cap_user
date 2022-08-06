@@ -1,6 +1,7 @@
 // ignore_for_file: use_key_in_widget_constructors
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
@@ -18,6 +19,11 @@ import 'package:smart_cap_user/screens/mainPage/mainpage.dart';
 import 'package:smart_cap_user/screens/splash/splash_binding.dart';
 import 'package:smart_cap_user/screens/splash/splash_view.dart';
 
+Future<void> backgroundHandler(RemoteMessage message) async {
+  print(message.data.toString());
+  print(message.notification!.title);
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -26,6 +32,21 @@ Future<void> main() async {
   SplashBinding().dependencies();
   await GetStorage.init();
   currentFirebaseUser = FirebaseAuth.instance.currentUser;
+  FirebaseMessaging.onBackgroundMessage(backgroundHandler);
+  final fcmToken = await FirebaseMessaging.instance.getToken();
+  print(fcmToken);
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+  NotificationSettings settings = await messaging.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: false,
+    provisional: false,
+    sound: true,
+  );
+
   runApp(MyApp());
 }
 

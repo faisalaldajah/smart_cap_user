@@ -13,6 +13,7 @@ import 'package:smart_cap_user/Services/AuthenticationService/Core/manager.dart'
 import 'package:smart_cap_user/brand_colors.dart';
 import 'package:smart_cap_user/datamodels/address.dart';
 import 'package:smart_cap_user/datamodels/directiondetails.dart';
+import 'package:smart_cap_user/datamodels/driver.dart';
 import 'package:smart_cap_user/datamodels/nearbydriver.dart';
 import 'package:smart_cap_user/datamodels/prediction.dart';
 import 'package:smart_cap_user/dataprovider/appdata.dart';
@@ -20,6 +21,8 @@ import 'package:smart_cap_user/globalvariable.dart';
 import 'package:smart_cap_user/helpers/firehelper.dart';
 import 'package:smart_cap_user/helpers/helpermethods.dart';
 import 'package:smart_cap_user/rideVaribles.dart';
+import 'package:smart_cap_user/screens/LogIn/login_binding.dart';
+import 'package:smart_cap_user/screens/LogIn/loginpage.dart';
 import 'package:smart_cap_user/widgets/CollectPaymentDialog.dart';
 import 'package:smart_cap_user/widgets/NoDriverDialog.dart';
 import 'package:smart_cap_user/widgets/ProgressDialog.dart';
@@ -46,7 +49,7 @@ class MainPageController extends GetxController {
   Set<Circle> circles = {};
   Rx<dynamic>? thisList;
   BitmapDescriptor? nearbyIcon;
-
+  RxList<Driver> driverDetails = <Driver>[].obs;
   Rx<DirectionDetails> tripDirectionDetails = DirectionDetails().obs;
 
   RxString appState = 'NORMAL'.obs;
@@ -62,8 +65,8 @@ class MainPageController extends GetxController {
   RxBool isRequestingLocationDetails = false.obs;
   RxBool locationOnMap = false.obs;
   RxString pinStatus = 'no pin'.obs;
-  RxString? distenationAdrress;
-  RxString? pickUpAdrress;
+  RxString distenationAdrress = ''.obs;
+  RxString pickUpAdrress = ''.obs;
   @override
   Future<void> onInit() async {
     driverCarStyle = 'driversDetails';
@@ -261,6 +264,7 @@ class MainPageController extends GetxController {
 
   Future<void> signOut() async {
     await FirebaseAuth.instance.signOut();
+    Get.offAll(() => const LoginPage(), binding: LogInBinding());
   }
 
   void showDetailSheet(String status) async {
@@ -477,19 +481,58 @@ class MainPageController extends GetxController {
   }
 
   void findDriver() {
-    //TODO
-    if (availableDrivers.isEmpty) {
-      cancelRequest();
-      //resetApp();
-      noDriverFound();
-      return;
-    }
+    DatabaseReference availableDriversFromFirebase =
+        FirebaseDatabase.instance.ref().child('driversAvailable');
 
-    var driver = availableDrivers[0];
+    availableDriversFromFirebase.limitToFirst(5).once().then((snapshot) {
+      Map<dynamic, dynamic> data =
+          snapshot.snapshot.value as Map<dynamic, dynamic>;
+      print(data.keys);
+      data.forEach(((key, value) {
+        print('Key = $key : Value = $value');
 
-    notifyDriver(driver);
+        DatabaseReference userRef =
+            FirebaseDatabase.instance.ref().child('drivers/$key');
+        Driver driver = Driver();
+        userRef.once().then((value) {
+          dynamic data = value.snapshot.value;
+          driver = Driver(
+              carColor: data['carColor'],
+              carFactory: data['carFactory'],
+              carNumber: data['carNumber'],
+              carType: data['carType'],
+              driverCarBackImageUrl: data['driverCarBackImageUrl'],
+              driverCarFrontImageUrl: data['driverCarFrontImageUrl'],
+              driverCarLicenseImageUrl: data['driverCarLicenseImageUrl'],
+              driverLicenseImageUrl: data['driverLicenseImageUrl'],
+              driversIsAvailable: data['driversIsAvailable'],
+              email: data['email'],
+              fullname: data['fullname'],
+              id: key,
+              personalImageUrl: data['personalImageUrl'],
+              phone: data['phone'],
+              socialAgentNumber: data['socialAgentNumber'],
+              token: data['token']);
+        });
+        driverDetails.add(driver);
+      }));
 
-    availableDrivers.removeAt(0);
+      //notifyChildrens(nearbyDriver);
+      //print(data);
+    });
+    // //TODO
+    // if (availableDrivers.isEmpty) {
+    //   cancelRequest();
+    //   //resetApp();
+    //   noDriverFound();
+    //   return;
+    // }
+
+    // var driver = availableDrivers[0];
+
+    // notifyDriver(driver);
+
+    // availableDrivers.removeAt(0);
   }
 
   void notifyDriver(NearbyDriver driver) {
@@ -508,7 +551,7 @@ class MainPageController extends GetxController {
         String token = snapshot.snapshot.value.toString();
 
         // send notification to selected driver
-        HelperMethods.sendNotification(token, Get.context, rideRef.key!);
+        HelperMethods.sendNotification(tokenTest, Get.context, rideRef.key!);
       } else {
         return;
       }

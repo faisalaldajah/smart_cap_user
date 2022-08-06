@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:smart_cap_user/Utilities/Constants/AppColors.dart';
 import 'package:smart_cap_user/globalvariable.dart';
 import 'package:smart_cap_user/screens/mainPage/main_page_controller.dart';
 import 'package:smart_cap_user/styles/styles.dart';
 import 'package:smart_cap_user/widgets/BrandDivier.dart';
+import 'package:http/http.dart' as http;
 
 class TheDrawer extends StatelessWidget {
   const TheDrawer({
@@ -12,6 +16,19 @@ class TheDrawer extends StatelessWidget {
   }) : super(key: key);
 
   final MainPageController controller;
+  String constructFCMPayload(String? token) {
+    return jsonEncode({
+      'token': token,
+      'data': {
+        'via': 'FlutterFire Cloud Messaging!!!',
+        'count': '500',
+      },
+      'notification': {
+        'title': 'Hello FlutterFire!',
+        'body': 'This notification (#500) was created via FCM!',
+      },
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,12 +114,37 @@ class TheDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
+            onTap: () async {
+              await http.post(
+                Uri.parse('https://fcm.googleapis.com/fcm/send'),
+                headers: <String, String>{
+                  'Content-Type': 'application/json; charset=UTF-8',
+                  'Authorization':
+                      'key=AAAAfSv3M30:APA91bGsv2U2KFDn-hGhSyGn5chdUsPRkERjZoDc05H4RoM6_bqL3Sl43Eb5X2lL5RjhfxzuCV1wxRdq55Xs2mDtq_aRihj2kZNVdYRB9eS6WV0nqjBGM4pY7qG1N4fi4UvnxTWFGFMU '
+                },
+                body: jsonEncode(
+                  <String, dynamic>{
+                    'notification': <String, dynamic>{
+                      'body': 'body',
+                      'title': 'title'
+                    },
+                    'priority': 'high',
+                    'data': <String, dynamic>{
+                      'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                      'id': '1',
+                      'status': 'done'
+                    },
+                    'to': 'fvnRLLV8RgC4TwBRZg832P:APA91bFRZjzgpjtPPLffLqQ0OlHsYFSsE88xnM0yXvLGh86QA41kpmczu3Ad5jca0GdwP1CchHAHW_bfPKsurocrVXVWudpn6aFdL3aybJGUJHEvBeL8ZJAQpRQLp-_hGm62_m1QZp1U',
+                  },
+                ),
+              );
+            },
             leading: const Icon(
               Icons.info,
               color: AppColors.primary,
             ),
             title: Text(
-              'About',
+              'about'.tr,
               style: kDrawerItemStyle,
             ),
           ),
@@ -113,7 +155,7 @@ class TheDrawer extends StatelessWidget {
               color: AppColors.primary,
             ),
             title: Text(
-              'Logout',
+              'logout'.tr,
               style: kDrawerItemStyle,
             ),
           ),

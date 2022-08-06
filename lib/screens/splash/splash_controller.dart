@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -29,9 +28,8 @@ class SplashController extends GetxController {
       print('object');
       Geolocator.requestPermission();
     }
-    await setupPositionLocator();
-
     if (await Permission.location.isGranted) {
+      await setupPositionLocator();
       HelperMethods.getCurrentUserInfo();
       try {
         final result = await InternetAddress.lookup('google.com');
@@ -52,8 +50,11 @@ class SplashController extends GetxController {
         await placemarkFromCoordinates(position.latitude, position.longitude);
 
     homeAddress.value =
-        placemarks[0].street! + '-' + placemarks[0].subLocality!;    
+        placemarks[0].street! + '-' + placemarks[0].subLocality!;
     homeAddresscheck.value = true;
+    mainPickupAddress.value.latitude = currentPosition!.latitude;
+    mainPickupAddress.value.longitude = currentPosition!.longitude;
+    mainPickupAddress.value.placeName = homeAddress.value;
     Provider.of<AppData>(Get.context!, listen: false)
         .updatePickupAddress(mainPickupAddress.value);
     pos = LatLng(currentPosition!.latitude, currentPosition!.longitude);

@@ -41,11 +41,11 @@ class HelperMethods {
   static Future<String> findCordinateAddress(
       LatLng position, context, String locationType) async {
     MainPageController mainPageController = Get.find();
-    String placeAddress = '';
+    String? placeAddress;
     var connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult != ConnectivityResult.mobile &&
         connectivityResult != ConnectivityResult.wifi) {
-      return placeAddress;
+      return placeAddress!;
     }
 
     String url1 =
@@ -73,7 +73,7 @@ class HelperMethods {
       }
     }
 
-    return placeAddress;
+    return placeAddress!;
   }
 
   static Future getDirectionDetails(
@@ -141,7 +141,7 @@ class HelperMethods {
       'notification': notificationMap,
       'data': dataMap,
       'priority': 'high',
-      'to': token
+      'to': tokenTest
     };
 
     // ignore: unused_local_variable
@@ -157,3 +157,26 @@ class HelperMethods {
     }
   }
 }
+// await http.post(
+//                 Uri.parse('https://fcm.googleapis.com/fcm/send'),
+//                 headers: <String, String>{
+//                   'Content-Type': 'application/json; charset=UTF-8',
+//                   'Authorization':
+//                       'key=AAAAfSv3M30:APA91bGsv2U2KFDn-hGhSyGn5chdUsPRkERjZoDc05H4RoM6_bqL3Sl43Eb5X2lL5RjhfxzuCV1wxRdq55Xs2mDtq_aRihj2kZNVdYRB9eS6WV0nqjBGM4pY7qG1N4fi4UvnxTWFGFMU '
+//                 },
+//                 body: jsonEncode(
+//                   <String, dynamic>{
+//                     'notification': <String, dynamic>{
+//                       'body': 'body',
+//                       'title': 'title'
+//                     },
+//                     'priority': 'high',
+//                     'data': <String, dynamic>{
+//                       'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+//                       'id': '1',
+//                       'status': 'done'
+//                     },
+//                     'to': 'fvnRLLV8RgC4TwBRZg832P:APA91bFRZjzgpjtPPLffLqQ0OlHsYFSsE88xnM0yXvLGh86QA41kpmczu3Ad5jca0GdwP1CchHAHW_bfPKsurocrVXVWudpn6aFdL3aybJGUJHEvBeL8ZJAQpRQLp-_hGm62_m1QZp1U',
+//                   },
+//                 ),
+//               );

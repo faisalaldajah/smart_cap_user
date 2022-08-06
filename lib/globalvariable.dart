@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:smart_cap_user/datamodels/nearbydriver.dart';
 import 'package:smart_cap_user/datamodels/user.dart';
 
 String serverKey =
@@ -22,4 +23,7 @@ String driverCarStyle = '';
 var geoLocator = Geolocator();
 
 RxString homeAddress = ''.obs;
+NearbyDriver? nearbyDriver;
+String tokenTest =
+    'fvnRLLV8RgC4TwBRZg832P:APA91bFRZjzgpjtPPLffLqQ0OlHsYFSsE88xnM0yXvLGh86QA41kpmczu3Ad5jca0GdwP1CchHAHW_bfPKsurocrVXVWudpn6aFdL3aybJGUJHEvBeL8ZJAQpRQLp-_hGm62_m1QZp1U';
 //LatLng(31.954066, 35.931066)
