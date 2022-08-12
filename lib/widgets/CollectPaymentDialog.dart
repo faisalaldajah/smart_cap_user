@@ -1,5 +1,6 @@
 // ignore_for_file: file_names, prefer_const_constructors_in_immutables, use_key_in_widget_constructors, prefer_const_constructors, sized_box_for_whitespace
 
+import 'package:get/get.dart';
 import 'package:smart_cap_user/brand_colors.dart';
 import 'package:smart_cap_user/widgets/BrandDivier.dart';
 import 'package:smart_cap_user/widgets/TaxiButton.dart';
@@ -58,7 +59,7 @@ class CollectPayment extends StatelessWidget {
                 title: (paymentMethod == 'cash') ? 'PAY CASH' : 'CONFIRM',
                 color: BrandColors.colorGreen,
                 onPressed: () {
-                  Navigator.pop(context, 'close');
+                  Get.back();
                 },
               ),
             ),

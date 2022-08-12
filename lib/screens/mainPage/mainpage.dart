@@ -1,6 +1,5 @@
 // ignore_for_file: prefer_const_constructors, use_key_in_widget_constructors, prefer_final_fields, non_constant_identifier_names, deprecated_member_use, sized_box_for_whitespace, missing_return, prefer_const_literals_to_create_immutables
 
-import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -52,14 +51,13 @@ class MainPage extends GetView<MainPageController> {
               polylines: controller.polylines,
               markers: controller.markers,
               circles: controller.circles,
-              onMapCreated: (GoogleMapController? googleMapController)  {
+              onMapCreated: (GoogleMapController? googleMapController) {
                 controller.googleMapController.complete(googleMapController);
                 controller.mapController!.value = googleMapController!;
                 controller.mapBottomPadding.value =
                     (Platform.isAndroid) ? 280 : 270;
               },
             ),
-
             ///MenuButtonDraewr
             Positioned(
               top: 44,
@@ -91,10 +89,12 @@ class MainPage extends GetView<MainPageController> {
 
             ///Location from map
             (controller.locationOnMap.value)
-                ? Positioned(
-                    top: 225,
-                    right: 165,
-                    child: Image.asset('images/desticon.png'),
+                ? Obx(
+                    () => Positioned(
+                      top: 225,
+                      right: 165,
+                      child: Image.asset('images/desticon.png'),
+                    ),
                   )
                 : Container(),
           ],

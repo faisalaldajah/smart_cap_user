@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -18,7 +17,6 @@ import 'package:smart_cap_user/datamodels/nearbydriver.dart';
 import 'package:smart_cap_user/datamodels/prediction.dart';
 import 'package:smart_cap_user/dataprovider/appdata.dart';
 import 'package:smart_cap_user/globalvariable.dart';
-import 'package:smart_cap_user/helpers/firehelper.dart';
 import 'package:smart_cap_user/helpers/helpermethods.dart';
 import 'package:smart_cap_user/rideVaribles.dart';
 import 'package:smart_cap_user/screens/LogIn/login_binding.dart';
@@ -43,19 +41,19 @@ class MainPageController extends GetxController {
   TickerProvider? vsync;
   RxDouble mapBottomPadding = 0.0.obs;
   RxBool focused = false.obs;
-  List<LatLng> polylineCoordinates = [];
-  Set<Polyline> polylines = {};
-  Set<Marker> markers = {};
+  RxList<LatLng> polylineCoordinates = <LatLng>[].obs;
+  RxSet<Polyline> polylines = <Polyline>{}.obs;
+  RxSet<Marker> markers = <Marker>{}.obs;
   Set<Circle> circles = {};
   Rx<dynamic>? thisList;
   BitmapDescriptor? nearbyIcon;
   RxList<Driver> driverDetails = <Driver>[].obs;
   Rx<DirectionDetails> tripDirectionDetails = DirectionDetails().obs;
-
+  NearbyDriver nearbyDriver = NearbyDriver();
   RxString appState = 'NORMAL'.obs;
-
+  RxList<NearbyDriver> nearbyDriverList = <NearbyDriver>[].obs;
   RxBool drawerCanOpen = true.obs;
-
+  String rideID = '';
   StreamSubscription<DatabaseEvent>? rideSubscription;
   Rx<GoogleMapController>? mapController;
   List<NearbyDriver> availableDrivers = <NearbyDriver>[].obs;
@@ -74,64 +72,20 @@ class MainPageController extends GetxController {
     mainPickupAddress.value.longitude = currentPosition!.longitude;
     mainPickupAddress.value.placeName = homeAddress.value;
     createMarker();
-    startGeofireListener();
+
     super.onInit();
   }
 
   @override
   void onReady() {
     pickupController.text = homeAddress.value;
+    driverAV();
     super.onReady();
-  }
-
-  void startGeofireListener() {
-    Geofire.initialize('driversDetails');
-    Geofire.queryAtLocation(
-            currentPosition!.latitude, currentPosition!.longitude, 20)!
-        .listen((map) {
-      log(map.toString());
-      if (map != null) {
-        var callBack = map['callBack'];
-
-        switch (callBack) {
-          case Geofire.onKeyEntered:
-            NearbyDriver nearbyDriver = NearbyDriver();
-            nearbyDriver.key = map['key'];
-            nearbyDriver.latitude = map['latitude'];
-            nearbyDriver.longitude = map['longitude'];
-            FireHelper.nearbyDriverList.add(nearbyDriver);
-            if (nearbyDriversKeysLoaded.value) {
-              updateDriversOnMap();
-            }
-            break;
-          case Geofire.onKeyExited:
-            FireHelper.removeFromList(map['key']);
-            updateDriversOnMap();
-            break;
-          case Geofire.onKeyMoved:
-            NearbyDriver nearbyDriver = NearbyDriver();
-            nearbyDriver.key = map['key'];
-            nearbyDriver.latitude = map['latitude'];
-            nearbyDriver.longitude = map['longitude'];
-
-            FireHelper.updateNearbyLocation(nearbyDriver);
-            updateDriversOnMap();
-            break;
-          case Geofire.onGeoQueryReady:
-            nearbyDriversKeysLoaded.value = true;
-            updateDriversOnMap();
-            break;
-        }
-      }
-    });
   }
 
   void updateDriversOnMap() {
     markers.clear();
-
-    Set<Marker> tempMarkers = <Marker>{};
-
-    for (NearbyDriver driver in FireHelper.nearbyDriverList) {
+    for (NearbyDriver driver in nearbyDriverList) {
       LatLng driverPosition = LatLng(driver.latitude!, driver.longitude!);
       Marker thisMarker = Marker(
         markerId: MarkerId('driver${driver.key}'),
@@ -139,11 +93,9 @@ class MainPageController extends GetxController {
         icon: nearbyIcon!,
         rotation: HelperMethods.generateRandomNumber(360),
       );
-
-      tempMarkers.add(thisMarker);
+      markers.add(thisMarker);
+      markers.refresh();
     }
-
-    markers = tempMarkers;
   }
 
   Future<void> getDirection() async {
@@ -152,8 +104,6 @@ class MainPageController extends GetxController {
     Address destination = (destinationAddress.value.latitude != null)
         ? destinationAddress.value
         : mainPickupAddress.value;
-    print(mainPickupAddress.value.latitude);
-    print(mainPickupAddress.value.longitude);
     LatLng pickLatLng = LatLng(
         mainPickupAddress.value.latitude!, mainPickupAddress.value.longitude!);
     LatLng destinationLatLng =
@@ -185,6 +135,7 @@ class MainPageController extends GetxController {
     }
 
     polylines.clear();
+    polylines.refresh();
 
     Polyline polyline = Polyline(
       polylineId: const PolylineId('polyid'),
@@ -198,7 +149,7 @@ class MainPageController extends GetxController {
     );
 
     polylines.add(polyline);
-
+    polylines.refresh();
     LatLngBounds bounds;
 
     if (pickLatLng.latitude > destinationLatLng.latitude &&
@@ -289,6 +240,7 @@ class MainPageController extends GetxController {
   void createRideRequest() {
     DatabaseReference rideRef =
         FirebaseDatabase.instance.ref().child('rideRequest').push();
+    rideID = rideRef.key.toString();
     if (Provider.of<AppData>(Get.context!, listen: false).destinationAddress ==
         null) {
       if (destinationAddress.value.latitude != null) {
@@ -344,7 +296,6 @@ class MainPageController extends GetxController {
       if (data['driver_phone'] != null) {
         driverPhoneNumber = data['driver_phone'].toString();
       }
-
       //get and use driver location updates
       if (data['driver_location'] != null) {
         double driverLat =
@@ -357,7 +308,7 @@ class MainPageController extends GetxController {
         } else if (status == 'ontrip') {
           updateToDestination(driverLocation);
         } else if (status == 'arrived') {
-          tripStatusDisplay = 'Driver has arrived';
+          tripStatusDisplay.value = 'Driver has arrived';
         }
       }
       if (data['status'] != null) {
@@ -365,14 +316,14 @@ class MainPageController extends GetxController {
       }
       if (status == 'accepted') {
         showTripSheet();
-        Geofire.stopListener();
+        //Geofire.stopListener();
         removeGeofireMarkers();
       }
       if (status == 'ended') {
         if (data['fares'] != null) {
           int fares = int.parse(data['fares'].toString());
-
-          var response = await showDialog(
+          log('CollectPayment');
+          showDialog(
             context: Get.context!,
             barrierDismissible: false,
             builder: (BuildContext context) => CollectPayment(
@@ -380,12 +331,11 @@ class MainPageController extends GetxController {
               fares: fares,
             ),
           );
-          if (response == 'close') {
-            rideRef.onDisconnect();
-            rideSubscription!.cancel();
-            rideSubscription = null;
-            resetApp();
-          }
+          tripSheetHeight.value = 0;
+          rideRef.onDisconnect();
+          rideSubscription!.cancel();
+          rideSubscription = null;
+          resetApp();
         }
       }
     });
@@ -415,7 +365,8 @@ class MainPageController extends GetxController {
         return;
       }
 
-      tripStatusDisplay = 'Driver is Arriving - ${thisDetails.durationText}';
+      tripStatusDisplay.value =
+          'Driver is Arriving - ${thisDetails.durationText}';
 
       isRequestingLocationDetails.value = false;
     }
@@ -438,7 +389,7 @@ class MainPageController extends GetxController {
         return;
       }
 
-      tripStatusDisplay =
+      tripStatusDisplay.value =
           'Driving to Destination - ${thisDetails.durationText}';
 
       isRequestingLocationDetails.value = false;
@@ -453,6 +404,7 @@ class MainPageController extends GetxController {
   }
 
   resetApp() {
+    searchSheetHeight.value = 310;
     locationOnMap.value = false;
     polylineCoordinates.clear();
     polylines.clear();
@@ -461,16 +413,16 @@ class MainPageController extends GetxController {
     rideDetailsSheetHeight.value = 0;
     requestingSheetHeight.value = 0;
     tripSheetHeight.value = 0;
-    searchSheetHeight.value = 310;
+    tripSheetHeight.refresh();
+    polylines.refresh();
     mapBottomPadding.value = (Platform.isAndroid) ? 280 : 270;
     drawerCanOpen.value = true;
     status = '';
     driverFullName = '';
     driverPhoneNumber = '';
     driverCarDetails = '';
-    tripStatusDisplay = 'Driver is Arriving';
-
-    //setupPositionLocator(context);
+    tripStatusDisplay.value = 'Driver is Arriving';
+    polylineCoordinates.refresh();
   }
 
   void noDriverFound() {
@@ -480,118 +432,52 @@ class MainPageController extends GetxController {
         builder: (BuildContext context) => NoDriverDialog());
   }
 
-  void findDriver() {
-    DatabaseReference availableDriversFromFirebase =
-        FirebaseDatabase.instance.ref().child('driversAvailable');
-
-    availableDriversFromFirebase.limitToFirst(5).once().then((snapshot) {
-      Map<dynamic, dynamic> data =
-          snapshot.snapshot.value as Map<dynamic, dynamic>;
-      print(data.keys);
-      data.forEach(((key, value) {
-        print('Key = $key : Value = $value');
-
-        DatabaseReference userRef =
-            FirebaseDatabase.instance.ref().child('drivers/$key');
-        Driver driver = Driver();
-        userRef.once().then((value) {
-          dynamic data = value.snapshot.value;
-          driver = Driver(
-              carColor: data['carColor'],
-              carFactory: data['carFactory'],
-              carNumber: data['carNumber'],
-              carType: data['carType'],
-              driverCarBackImageUrl: data['driverCarBackImageUrl'],
-              driverCarFrontImageUrl: data['driverCarFrontImageUrl'],
-              driverCarLicenseImageUrl: data['driverCarLicenseImageUrl'],
-              driverLicenseImageUrl: data['driverLicenseImageUrl'],
-              driversIsAvailable: data['driversIsAvailable'],
-              email: data['email'],
-              fullname: data['fullname'],
-              id: key,
-              personalImageUrl: data['personalImageUrl'],
-              phone: data['phone'],
-              socialAgentNumber: data['socialAgentNumber'],
-              token: data['token']);
-        });
-        driverDetails.add(driver);
-      }));
-
-      //notifyChildrens(nearbyDriver);
-      //print(data);
-    });
-    // //TODO
-    // if (availableDrivers.isEmpty) {
-    //   cancelRequest();
-    //   //resetApp();
-    //   noDriverFound();
-    //   return;
-    // }
-
-    // var driver = availableDrivers[0];
-
-    // notifyDriver(driver);
-
-    // availableDrivers.removeAt(0);
-  }
-
-  void notifyDriver(NearbyDriver driver) {
-    DatabaseReference rideRef =
-        FirebaseDatabase.instance.ref().child('rideRequest').push();
-    DatabaseReference driverTripRef =
-        FirebaseDatabase.instance.ref().child('drivers/${driver.key}/newtrip');
-    driverTripRef.set(rideRef.key);
-
-    // Get and notify driver using token
-    DatabaseReference tokenRef =
-        FirebaseDatabase.instance.ref().child('drivers/${driver.key}/token');
-
-    tokenRef.once().then((snapshot) {
-      if (snapshot.snapshot.value != null) {
-        String token = snapshot.snapshot.value.toString();
-
-        // send notification to selected driver
-        HelperMethods.sendNotification(tokenTest, Get.context, rideRef.key!);
-      } else {
-        return;
-      }
-
-      const oneSecTick = Duration(seconds: 1);
-
-      // ignore: unused_local_variable
-      var timer = Timer.periodic(oneSecTick, (timer) {
-        // stop timer when ride request is cancelled;
-        if (appState.value != 'REQUESTING') {
-          driverTripRef.set('cancelled');
-          driverTripRef.onDisconnect();
-          timer.cancel();
-          driverRequestTimeout = 30;
+  void findDriver() async {
+    if (nearbyDriverList.isNotEmpty) {
+      DatabaseReference driverTripRef = FirebaseDatabase.instance
+          .ref()
+          .child('drivers/${nearbyDriverList[0].key}/newtrip');
+      DatabaseReference tokenRef = FirebaseDatabase.instance
+          .ref()
+          .child('drivers/${nearbyDriverList[0].key}/token');
+      driverTripRef.set(rideID);
+      tokenRef.once().then((snapshot) {
+        if (snapshot.snapshot.value != null) {
+          String token = snapshot.snapshot.value.toString();
+          HelperMethods.sendNotification(
+              token: token, context: Get.context, rideId: rideID);
         }
-
-        driverRequestTimeout--;
-
-        // a value event listener for driver accepting trip request
-        driverTripRef.onValue.listen((event) {
-          // confirms that driver has clicked accepted for the new trip request
-          if (event.snapshot.value.toString() == 'accepted') {
+        const oneSecTick = Duration(seconds: 1);
+        Timer.periodic(oneSecTick, (timer) {
+          // stop timer when ride request is cancelled;
+          if (appState.value != 'REQUESTING') {
+            driverTripRef.set('cancelled');
             driverTripRef.onDisconnect();
             timer.cancel();
             driverRequestTimeout = 30;
           }
+          driverRequestTimeout--;
+          // a value event listener for driver accepting trip request
+          driverTripRef.onValue.listen((event) {
+            // confirms that driver has clicked accepted for the new trip request
+            if (event.snapshot.value.toString() == 'accepted') {
+              driverTripRef.onDisconnect();
+              timer.cancel();
+              driverRequestTimeout = 30;
+            }
+          });
+          if (driverRequestTimeout == 0) {
+            //informs driver that ride has timed out
+            driverTripRef.set('timeout');
+            driverTripRef.onDisconnect();
+            driverRequestTimeout = 30;
+            timer.cancel();
+            //select the next closest driver
+            findDriver();
+          }
         });
-
-        if (driverRequestTimeout == 0) {
-          //informs driver that ride has timed out
-          driverTripRef.set('timeout');
-          driverTripRef.onDisconnect();
-          driverRequestTimeout = 30;
-          timer.cancel();
-
-          //select the next closest driver
-          findDriver();
-        }
       });
-    });
+    }
   }
 
   Future getCenter() async {
@@ -634,5 +520,61 @@ class MainPageController extends GetxController {
         nearbyIcon = icon;
       });
     }
+  }
+
+  void removeFromList(String key) {
+    int index = nearbyDriverList.indexWhere((element) => element.key == key);
+
+    if (nearbyDriverList.isNotEmpty) {
+      nearbyDriverList.removeAt(index);
+    }
+  }
+
+  void updateNearbyLocation(NearbyDriver driver) {
+    int index =
+        nearbyDriverList.indexWhere((element) => element.key == driver.key);
+    nearbyDriverList[index].longitude = driver.longitude;
+    nearbyDriverList[index].latitude = driver.latitude;
+  }
+
+  void driverAV() {
+    DatabaseReference availableDriversFromFirebase =
+        FirebaseDatabase.instance.ref().child('driversAvailable');
+    availableDriversFromFirebase.limitToFirst(5).once().then((snapshot) {
+      Map<dynamic, dynamic> data =
+          snapshot.snapshot.value as Map<dynamic, dynamic>;
+      data.forEach(((key, value) {
+        nearbyDriver = NearbyDriver(
+            key: key,
+            latitude: value['location']['lat'],
+            longitude: value['location']['long']);
+        nearbyDriverList.add(nearbyDriver);
+        nearbyDriverList.refresh();
+        // DatabaseReference userRef =
+        //     FirebaseDatabase.instance.ref().child('drivers/$key');
+        // Driver driver = Driver();
+        // userRef.once().then((value) {
+        //   dynamic data = value.snapshot.value;
+        //   driver = Driver(
+        //       carColor: data['carColor'],
+        //       carFactory: data['carFactory'],
+        //       carNumber: data['carNumber'],
+        //       carType: data['carType'],
+        //       driverCarBackImageUrl: data['driverCarBackImageUrl'],
+        //       driverCarFrontImageUrl: data['driverCarFrontImageUrl'],
+        //       driverCarLicenseImageUrl: data['driverCarLicenseImageUrl'],
+        //       driverLicenseImageUrl: data['driverLicenseImageUrl'],
+        //       driversIsAvailable: data['driversIsAvailable'],
+        //       email: data['email'],
+        //       fullname: data['fullname'],
+        //       id: key,
+        //       personalImageUrl: data['personalImageUrl'],
+        //       phone: data['phone'],
+        //       socialAgentNumber: data['socialAgentNumber'],
+        //       token: data['token']);
+        // });
+        // driverDetails.add(driver);
+      }));
+    });
   }
 }

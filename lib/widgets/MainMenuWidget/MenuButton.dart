@@ -26,12 +26,14 @@ class MenuButton extends GetView<MainPageController> {
       child: CircleAvatar(
         backgroundColor: Colors.white,
         radius: 20,
-        child: Icon(
-          (controller.drawerCanOpen.value &&
-                  controller.locationOnMap.value == false)
-              ? Icons.menu
-              : Icons.arrow_back,
-          color: Colors.black87,
+        child: Obx(
+          () => Icon(
+            (controller.drawerCanOpen.value &&
+                    controller.locationOnMap.value == false)
+                ? Icons.menu
+                : Icons.arrow_back,
+            color: Colors.black87,
+          ),
         ),
       ),
     );
